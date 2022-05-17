@@ -1,14 +1,13 @@
-package lexerstudy
+package json_sql_query
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 )
 
 // Ensure the parser can parse strings into Statement ASTs.
 func TestParser_ParseStatement(t *testing.T) {
-	stmt, err := NewParser(strings.NewReader("select name as hello, ba as c,m, 5.8 as x FROM tbl where ba=1 and (c>3 or d.c='ll' or e=3) and v=3")).Parse()
+	stmt, err := NewParser("select * from tbl where b=2 and c like '4' and d->a.id>0").Parse()
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -18,7 +17,7 @@ func TestParser_ParseStatement(t *testing.T) {
 
 func BenchmarkNewAST(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _ = NewParser(strings.NewReader("select name as hello, ba as c,m FROM tbl where ba=1 and v=3")).Parse()
+		_, _ = NewParser("select b,c from tbl where b=2").Parse()
 
 	}
 }

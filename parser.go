@@ -1,8 +1,26 @@
-package lexerstudy
+package json_sql_query
 
 import (
 	"fmt"
-	"io"
+	"strconv"
+)
+
+type ExprNodeType int
+type FieldType int
+
+const (
+	Unknown     ExprNodeType = 0
+	BinaryNode  ExprNodeType = 1
+	FieldNode   ExprNodeType = 2
+	IntegerNode ExprNodeType = 3
+	FloatNode   ExprNodeType = 4
+	StringNode  ExprNodeType = 5
+)
+
+const (
+	IDINTField FieldType = 0
+	ValueField FieldType = 1
+	ALLField   FieldType = 2
 )
 
 type SelectStatement struct {
@@ -12,17 +30,55 @@ type SelectStatement struct {
 }
 
 type Field struct {
+	Type  FieldType
 	Name  string
+	Value interface{}
 	Alias string
 }
 
 type Condition struct {
-	Left  *Condition
-	Right *Condition
-	Name  string
-	Value string
-	Op    int
-	OpStr string
+	Type     ExprNodeType
+	Left     *Condition
+	Right    *Condition
+	FloatVal float64
+	IntVal   int64
+	StrVal   string
+	Name     string
+	Op       Token
+	OpStr    string
+}
+
+func (node *Condition) str() string {
+	switch node.Type {
+	case FieldNode:
+		return node.Name
+	case StringNode:
+		return node.StrVal
+	case IntegerNode:
+		return strconv.FormatInt(node.IntVal, 10)
+	case FloatNode:
+		return strconv.FormatFloat(node.FloatVal, 'f', -1, 64)
+	case BinaryNode:
+		return fmt.Sprintf("(%s %s %s)", node.Left.str(), node.OpStr, node.Right.str())
+	}
+
+	return "?"
+}
+
+func (field Field) Str() string {
+	f := field.Name
+	if field.Type == ValueField {
+		f = fmt.Sprintf("%v", field.Value)
+	}
+
+	if field.Type == ALLField {
+		f = "*"
+	}
+
+	if field.Alias != "" {
+		f = f + " AS " + field.Alias
+	}
+	return f
 }
 
 type Parser struct {
@@ -34,7 +90,7 @@ type Parser struct {
 	}
 }
 
-func NewParser(r io.Reader) *Parser {
+func NewParser(r string) *Parser {
 	return &Parser{s: NewScanner(r)}
 }
 
@@ -49,7 +105,25 @@ func (p *Parser) Parse() (*SelectStatement, error) {
 			return nil, fmt.Errorf("found %q, expected field", lit)
 		}
 		field := Field{}
-		field.Name = lit
+		switch tok {
+		case ASTERISK:
+			field.Type = ALLField
+			field.Name = lit
+		case IDENT:
+			field.Type = IDINTField
+			field.Name = lit
+		case INTEGER:
+			field.Type = ValueField
+			intValue, _ := strconv.ParseInt(lit, 10, 64)
+			field.Value = intValue
+		case STRING:
+			field.Type = ValueField
+			field.Value = lit
+		case FLOAT:
+			field.Type = ValueField
+			floatValue, _ := strconv.ParseFloat(lit, 64)
+			field.Value = floatValue
+		}
 
 		if tok, _ := p.scanIgnoreWhitespace(); tok == AS {
 			_, alias := p.scanIgnoreWhitespace()

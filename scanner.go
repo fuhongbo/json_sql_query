@@ -1,28 +1,17 @@
-package lexerstudy
+package json_sql_query
 
 import (
-	"bufio"
 	"bytes"
-	"io"
 	"strings"
 )
 
 type Scanner struct {
-	r *bufio.Reader
+	pos   int
+	query string
 }
 
-var eof = rune(0)
-
-func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }
-
-// isLetter returns true if the rune is a letter.
-func isLetter(ch rune) bool { return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') }
-
-// isDigit returns true if the rune is a digit.
-func isDigit(ch rune) bool { return ch >= '0' && ch <= '9' }
-
-func NewScanner(r io.Reader) *Scanner {
-	return &Scanner{r: bufio.NewReader(r)}
+func NewScanner(r string) *Scanner {
+	return &Scanner{query: r}
 }
 
 func (s *Scanner) Scan() (tok Token, lit string) {
@@ -84,15 +73,17 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 }
 
 func (s *Scanner) read() rune {
-	ch, _, err := s.r.ReadRune()
-	if err != nil {
-		return eof
+
+	if s.pos < len(s.query) {
+		ch := rune(s.query[s.pos])
+		s.pos++
+		return ch
 	}
-	return ch
+	return eof
 }
 
 func (s *Scanner) unread() {
-	_ = s.r.UnreadRune()
+	s.pos--
 }
 
 func (s *Scanner) scanIdent() (tok Token, lit string) {
@@ -103,8 +94,25 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 		if ch := s.read(); ch == eof {
 			break
 		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' && ch != '.' {
-			s.unread()
-			break
+			if ch == '-' {
+				ch = s.read()
+				if ch == '>' {
+					_, _ = buf.WriteRune('-')
+					_, _ = buf.WriteRune('>')
+				} else {
+					s.unread()
+					s.unread()
+					break
+				}
+			} else {
+				if strings.ToUpper(buf.String()) == "NOT" && ch == ' ' {
+					_, _ = buf.WriteRune(ch)
+				} else {
+					s.unread()
+					break
+				}
+			}
+
 		} else {
 			_, _ = buf.WriteRune(ch)
 		}
@@ -119,6 +127,12 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 		return WHERE, buf.String()
 	case "AS":
 		return AS, buf.String()
+	case "IN":
+		return IN, buf.String()
+	case "NOT IN":
+		return NOTIN, buf.String()
+	case "LIKE":
+		return LIKE, buf.String()
 	case "AND":
 		return AND, buf.String()
 	case "OR":
@@ -192,3 +206,13 @@ func (s *Scanner) readString() (tok Token, lit string) {
 		}
 	}
 }
+
+var eof = rune(0)
+
+func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }
+
+// isLetter returns true if the rune is a letter.
+func isLetter(ch rune) bool { return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') }
+
+// isDigit returns true if the rune is a digit.
+func isDigit(ch rune) bool { return ch >= '0' && ch <= '9' }

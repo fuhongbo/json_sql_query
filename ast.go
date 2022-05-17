@@ -1,11 +1,12 @@
-package lexerstudy
+package json_sql_query
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 )
 
-var precedence = map[string]int{">": 20, ">=": 20, "<": 20, "<=": 20, "<>": 20, "=": 20, "=~": 20, "AND": 10, "OR": 10}
+var precedence = map[string]int{">": 20, ">=": 20, "<": 20, "<=": 20, "<>": 20, "=": 20, "=~": 20, "IN": 20, "NOT IN": 20, "LIKE": 20, "AND": 10, "OR": 10}
 
 type ASTToken struct {
 	Tok string
@@ -64,7 +65,6 @@ func (a *AST) getNextToken() *ASTToken {
 			Tok:   lit,
 			Token: tok,
 		}
-
 		return a.currTok
 	}
 
@@ -72,14 +72,40 @@ func (a *AST) getNextToken() *ASTToken {
 
 func (a *AST) parsePrimary() *Condition {
 	switch a.currTok.Token {
-	case IDENT, ILLEGAL, INTEGER, FLOAT, STRING:
+	case IDENT, ILLEGAL:
 		c := &Condition{
-			Name:  a.currTok.Tok,
-			Value: a.currTok.Tok,
+			Op:   a.currTok.Token,
+			Type: FieldNode,
+			Name: a.currTok.Tok,
 		}
 		a.getNextToken()
 		return c
-
+	case INTEGER:
+		intValue, _ := strconv.ParseInt(a.currTok.Tok, 10, 32)
+		c := &Condition{
+			Op:     a.currTok.Token,
+			Type:   IntegerNode,
+			IntVal: intValue,
+		}
+		a.getNextToken()
+		return c
+	case FLOAT:
+		floatValue, _ := strconv.ParseFloat(a.currTok.Tok, 32)
+		c := &Condition{
+			Op:       a.currTok.Token,
+			Type:     FloatNode,
+			FloatVal: floatValue,
+		}
+		a.getNextToken()
+		return c
+	case STRING:
+		c := &Condition{
+			Op:     a.currTok.Token,
+			Type:   StringNode,
+			StrVal: a.currTok.Tok,
+		}
+		a.getNextToken()
+		return c
 	case LEFTC, RIGTHC:
 
 		t := a.getNextToken()
@@ -112,6 +138,7 @@ func (a *AST) parseBinOpRHS(execPrec int, lhs *Condition) *Condition {
 		}
 
 		binOp := a.currTok.Tok
+		op := a.currTok.Token
 		if a.getNextToken() == nil {
 			return lhs
 		}
@@ -127,7 +154,9 @@ func (a *AST) parseBinOpRHS(execPrec int, lhs *Condition) *Condition {
 			}
 		}
 		lhs = &Condition{
+			Type:  BinaryNode,
 			OpStr: binOp,
+			Op:    op,
 			Left:  lhs,
 			Right: rhs,
 		}

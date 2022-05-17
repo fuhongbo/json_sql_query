@@ -1,4 +1,4 @@
-package lexerstudy
+package json_sql_query
 
 type Token int
 
@@ -33,4 +33,7 @@ const (
 	MATCH  //=~
 	LEFTC  //(
 	RIGTHC //)
+	IN     //in
+	NOTIN  //not in
+	LIKE
 )
