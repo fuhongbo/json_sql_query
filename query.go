@@ -24,6 +24,16 @@ func NewQuery(query string) (*Query, error) {
 	}
 }
 
+func (q *Query) Update(query string) error {
+	selectStatement, err := NewParser(query).Parse()
+	if err != nil {
+		return err
+	} else {
+		q.Statement = selectStatement
+	}
+	return nil
+}
+
 func (q *Query) Valid(json string) (bool, string) {
 
 	ref := &Ref{JsonRef: gjson.Parse(json)}
