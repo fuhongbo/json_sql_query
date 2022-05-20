@@ -1,4 +1,4 @@
-module json_sql_query
+module github.com/fuhongbo/json_sql_query
 
 go 1.18
 
