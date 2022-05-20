@@ -3,10 +3,10 @@ package json_sql_query
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fuhongbo/json_sql_query/gjson"
+	"github.com/fuhongbo/json_sql_query/wildcard"
 	"github.com/tidwall/sjson"
 	"golang.org/x/exp/slices"
-	"json_sql_query/gjson"
-	"json_sql_query/wildcard"
 	"reflect"
 	"strings"
 )

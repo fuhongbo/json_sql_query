@@ -1,8 +1,8 @@
 package json_sql_query
 
 import (
+	"github.com/fuhongbo/json_sql_query/gjson"
 	"github.com/tidwall/sjson"
-	"json_sql_query/gjson"
 	"strings"
 )
 
