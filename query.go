@@ -1,13 +1,18 @@
 package json_sql_query
 
 import (
+	"github.com/tidwall/sjson"
 	"json_sql_query/gjson"
 	"strings"
 )
 
+type Ref struct {
+	Str     string
+	JsonRef gjson.Result
+}
+
 type Query struct {
-	query     string
-	Statement *SelectStatement
+	Statement SelectStatement
 }
 
 func NewQuery(query string) (*Query, error) {
@@ -15,49 +20,51 @@ func NewQuery(query string) (*Query, error) {
 	if err != nil {
 		return nil, err
 	} else {
-		return &Query{Statement: selectStatement, query: query}, nil
+		return &Query{Statement: selectStatement}, nil
 	}
 }
 
 func (q *Query) Valid(json string) (bool, string) {
 
-	jsonRef := gjson.Parse(json)
+	ref := &Ref{JsonRef: gjson.Parse(json)}
 
-	result, tempArray := q.valid(&jsonRef)
+	result := q.valid(ref)
 
 	if result {
 		b := NewBuilder()
 		for _, item := range q.Statement.Fields {
 			switch item.Type {
 			case ALLField:
-				return true, json
+				return true, ref.JsonRef.Raw
 			case IDINTField:
 				if item.Alias != "" {
-					b.Set(item.Alias, jsonRef.Get(item.Name).Value())
+					b.Set(item.Alias, ref.JsonRef.Get(item.Name).Value())
 				} else {
-					b.Set(item.Name, jsonRef.Get(item.Name).Value())
+					b.Set(item.Name, ref.JsonRef.Get(item.Name).Value())
 				}
 			case ValueField:
 				b.Set(item.Alias, item.Value)
 			}
 		}
-
-		for k, v := range tempArray {
-			b.Set(k, v)
-		}
-
 		return result, b.ToJson()
 
 	}
 	return result, ""
 }
 
-func (e *Query) valid(json *gjson.Result) (bool, map[string]interface{}) {
-	if e.Statement.WHERE == nil {
-		return true, nil
+func (q *Query) valid(ref *Ref) bool {
+
+	if q.Statement.WHERE == nil {
+		return true
 	}
-	tempArray := make(map[string]interface{})
-	return Valid(e.Statement.WHERE.Left, e.Statement.WHERE.Right, e.Statement.WHERE.Op, json, tempArray), tempArray
+	result, ar := Valid(q.Statement.WHERE.Left, q.Statement.WHERE.Right, q.Statement.WHERE.Op, ref)
+	if result && ar != nil {
+		key := strings.Split(q.Statement.WHERE.Left.Name, "->")[0]
+		tempJson, _ := sjson.Set(ref.JsonRef.Raw, key, ar[key])
+		tp := gjson.Parse(tempJson)
+		ref.JsonRef = tp
+	}
+	return result
 }
 
 func (q *Query) GetFrom() string {

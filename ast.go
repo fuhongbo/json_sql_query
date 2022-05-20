@@ -162,6 +162,7 @@ func (a *AST) parseBinOpRHS(execPrec int, lhs *Condition) *Condition {
 		}
 	}
 }
+
 func (a *AST) getTokPrecedence() int {
 	if p, ok := precedence[strings.ToUpper(a.currTok.Tok)]; ok {
 		return p

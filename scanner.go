@@ -10,6 +10,8 @@ type Scanner struct {
 	query string
 }
 
+var eof = rune(0)
+
 func NewScanner(r string) *Scanner {
 	return &Scanner{query: r}
 }
@@ -93,7 +95,7 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 	for {
 		if ch := s.read(); ch == eof {
 			break
-		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' && ch != '.' {
+		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' && ch != '.' && ch != '/' {
 			if ch == '-' {
 				ch = s.read()
 				if ch == '>' {
@@ -104,6 +106,15 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 					s.unread()
 					break
 				}
+			} else if ch == '`' {
+				for {
+					ch = s.read()
+					if ch == '`' {
+						break
+					}
+					_, _ = buf.WriteRune(ch)
+				}
+
 			} else {
 				if strings.ToUpper(buf.String()) == "NOT" && ch == ' ' {
 					_, _ = buf.WriteRune(ch)
@@ -114,7 +125,9 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 			}
 
 		} else {
-			_, _ = buf.WriteRune(ch)
+			if ch != '`' {
+				_, _ = buf.WriteRune(ch)
+			}
 		}
 	}
 
@@ -206,8 +219,6 @@ func (s *Scanner) readString() (tok Token, lit string) {
 		}
 	}
 }
-
-var eof = rune(0)
 
 func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }
 
