@@ -1,7 +1,7 @@
 package test
 
 import (
-	"json_sql_query"
+	"github.com/fuhongbo/json_sql_query"
 	"testing"
 )
 

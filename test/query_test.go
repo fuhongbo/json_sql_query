@@ -2,7 +2,7 @@ package test
 
 import (
 	"fmt"
-	"json_sql_query"
+	"github.com/fuhongbo/json_sql_query"
 	"testing"
 )
 
